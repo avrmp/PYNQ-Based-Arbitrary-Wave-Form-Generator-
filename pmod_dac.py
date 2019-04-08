@@ -28,17 +28,31 @@
 #   ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
+"""
+ * Passed parameters in MAILBOX_WRITE_CMD
+ * bits 31:20 => delay in microsecond if wave generation mode is selected
+ * bits 31:20 => 12-bit value to be output if fixed value mode is selected
+ * bits 19:16 => 4-bit value indicates channels to be used
+ * bits 15:8 => number of cycles to be produced in wave generation mode, 
+ *              if it is set to 0, then generate waveforms forever
+ * bit 7 => not used
+ * bit 6 => random wave generation - pattern is written in MAILBOX_DATA area
+ *          with MAILBOX_DATA(0) having number of samples per cycle, followed 
+ *          by 12-bit values in each word
+ * bit 5 => Sine wave generation mode
+ * bit 4 => Triangle waveform generation mode
+ * bit 3 => Sawtooth generation mode
+ * bit 2 => Square wave generation mode
+ * bit 1 => Fixed Value mode
+ * bit 0 => 1 command issued, 0 command completed
+"""
+
+
 from . import Pmod
 import struct
 
-__author__ = "Graham Schelle, Giuseppe Natale, Yun Rock Qu"
-__copyright__ = "Copyright 2016, Xilinx"
-__email__ = "pynq_support@xilinx.com"
-
-
 PMOD_DAC_PROGRAM = "pmod_dac.bin"
 FIXEDGEN = 0x3
-SAWTOOTH = 0xF
 
 
 class Pmod_DAC(object):
@@ -99,15 +113,15 @@ class Pmod_DAC(object):
         self.microblaze.write_blocking_command(cmd)
 
     def write_sawtooth(self, cycles, delay):
+        """
+        cycles is the number of cycles of the wave we want to output
+        before stopping the signal. If cycles is 0 the wave is generated forever
 
-        # Calculate the voltage value and write to DAC
-        #numcycles = int(cycles)
-        #cmd = (numcycles << 8) | SAWTOOTH
-        #print(cmd)
-        cmd = '0b000000000001' + '0000' + '00000000' + '00001001'
-        cmd = int(cmd, 2)
-        #cmd=struct.pack()
-        print (bin(cmd))
-        print('Hello')
-        #print(bin(cmd))
+        the delay is the number of microseconds to wait between 
+        writing each step of the wave
+        """
+        delay = (delay & 0xFFF) << 20
+        cycles = (cycles & 0xFF) << 8
+        mode = 8 # sawtooth mode
+        cmd = cycles + delay + mode + 1
         self.microblaze.write_blocking_command(cmd)
