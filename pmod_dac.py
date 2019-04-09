@@ -68,7 +68,7 @@ class Pmod_DAC(object):
         
     """
 
-    def __init__(self, mb_info, value=None):
+    def __init__(self, mb_info):
         """Return a new instance of a DAC object.
     
         Note
@@ -84,25 +84,10 @@ class Pmod_DAC(object):
             
         """
         self.microblaze = Pmod(mb_info, PMOD_DAC_PROGRAM)
-        if value:
-            self.write(value)
 
-    def write(self, value):
-        """Write a floating point number onto the DAC Pmod.
-
-        Note
-        ----
-        Input value must be in the range [0.00, 2.50] 
-
-        Parameters
-        ----------
-        value : float
-            The value to be written to the DAC.
-            
-        Returns
-        -------
-        None
-
+    def write_fixed_value(self, value):
+        """
+        Write a floating point number onto the DAC Pmod.
         """
         if not 0.00 <= value <= 2.5:
             raise ValueError("Requested value not in range [0.00, 2.50].")
@@ -122,6 +107,63 @@ class Pmod_DAC(object):
         """
         delay = (delay & 0xFFF) << 20
         cycles = (cycles & 0xFF) << 8
+        mode = 8 
+        cmd = cycles + delay + mode + 1
+        self.microblaze.write_blocking_command(cmd)
+    
+    def write_square_wave(self, cycles, delay):
+        """
+        cycles is the number of cycles of the wave we want to output
+        before stopping the signal. If cycles is 0 the wave is generated forever
+
+        the delay is the number of microseconds to wait between 
+        writing each step of the wave
+        """
+        delay = (delay & 0xFFF) << 20
+        cycles = (cycles & 0xFF) << 8
+        mode = 4 
+        cmd = cycles + delay + mode + 1
+        self.microblaze.write_blocking_command(cmd)
+    
+        def write_triangle_wave(self, cycles, delay):
+        """
+        cycles is the number of cycles of the wave we want to output
+        before stopping the signal. If cycles is 0 the wave is generated forever
+
+        the delay is the number of microseconds to wait between 
+        writing each step of the wave
+        """
+        delay = (delay & 0xFFF) << 20
+        cycles = (cycles & 0xFF) << 8
+        mode = 16 
+        cmd = cycles + delay + mode + 1
+        self.microblaze.write_blocking_command(cmd)
+    
+    def write_sine_wave(self, cycles, delay):
+        """
+        cycles is the number of cycles of the wave we want to output
+        before stopping the signal. If cycles is 0 the wave is generated forever
+
+        the delay is the number of microseconds to wait between 
+        writing each step of the wave
+        """
+        delay = (delay & 0xFFF) << 20
+        cycles = (cycles & 0xFF) << 8
+        mode = 32 
+        cmd = cycles + delay + mode + 1
+        self.microblaze.write_blocking_command(cmd)
+    
+    def write_sawtooth(self, cycles, delay):
+        """
+        cycles is the number of cycles of the wave we want to output
+        before stopping the signal. If cycles is 0 the wave is generated forever
+
+        the delay is the number of microseconds to wait between 
+        writing each step of the wave
+        """
+        delay = (delay & 0xFFF) << 20
+        cycles = (cycles & 0xFF) << 8
         mode = 8 # sawtooth mode
         cmd = cycles + delay + mode + 1
         self.microblaze.write_blocking_command(cmd)
+    
