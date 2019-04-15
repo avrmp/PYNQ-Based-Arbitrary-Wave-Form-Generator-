@@ -1,0 +1,21 @@
+1. File > New > Board Support Backage
+	- Target Hardware > New > Browse > select base.hdf file from pynq
+
+2. Right Click on explorer > Import > General > Existing Project
+	- Select pynq .... /lib/pmod/pmod_dac folder
+
+3. Clean/Build and should have errors about memory
+
+4. Right click pmod_dac folder in project explorer
+	- Properties > project references > select the standalone_bsp folder (or whatever you named 1.)
+
+
+From here there's a few things to play with to fix 3. errors
+5. Xilinx > Generate link script > reduce heap/stack size from 1024 bytes to 512? 256? less??
+6. Delete functions we dont care about in pmod_dac.c file
+
+7. Build project and you should get a pmod_dac.elf file
+
+8. Xilinx > Launch shell and navigate to .elf file directoy
+
+9. run this in shell "mb-objcopy -O binary <input_file>.elf <output_file>.bin"
