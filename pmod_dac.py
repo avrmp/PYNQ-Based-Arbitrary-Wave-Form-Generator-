@@ -50,6 +50,8 @@
 
 from . import Pmod
 import struct
+import csv
+import time
 
 PMOD_DAC_PROGRAM = "pmod_dac.bin"
 FIXEDGEN = 0x3
@@ -96,6 +98,58 @@ class Pmod_DAC(object):
         int_val = int(value / 0.0006105)
         cmd = (int_val << 20) | FIXEDGEN
         self.microblaze.write_blocking_command(cmd)
+
+    def write_arbitrary(self):
+        wave = []
+        convertedWave = []
+        
+        print('reading in wave.csv')
+        with open('wave.csv') as csv_file:
+            csv_reader = csv.reader(csv_file, delimiter=',')
+            for row in csv_reader:
+                wave.append(row[0])
+        
+        # only 253 adddresses each one is 32 bits
+        if len(wave) > 253 * 2:
+            print('wave.csv too long')
+            return
+        
+        if max(wave) > 2.5:
+            print('max value over 2.5V')
+            return
+        
+        # encode voltage values into 32 bit integers using resolution/step size of 4096 and max value 2.5V
+        # each 32 bit integer will contain two 12 bit values (2^12 = 4096) and padded in MSB with zeros
+        for i in range(0, len(wave), 1):
+            integer = 0
+            
+            # handle odd length
+            if i == len(wave) - 1:
+                value1, value2 = wave[i], 0
+            else:    
+                value1, value2 = wave[i], wave[i + 1]
+
+            # convert to integer between 0 and 4096
+            value1, value2 = int(value1 * 4096 / 2.5), int(value2 * 4096 / 2.5)
+
+            value1 = value1 << 12
+            integer += value1 + value2
+            convertedWave.append(integer)
+        
+        print('writing to microblaze mailbox')
+
+        # write to mailbox
+        self.microblaze.write_mailbox(0, convertedWave)
+
+        # arbitrary wait to make sure it done writing (don't know if write_mailbox is blocking)
+        time.sleep(2)
+
+        print('running arbitrary wave generator')
+        
+        cmd = 8 + 1 # mode=3 and lsb = 1 means run cmd
+        self.microblaze.write_blocking_command(cmd)
+
+
 
     def write_sawtooth(self, cycles, delay):
         """
