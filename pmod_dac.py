@@ -145,8 +145,8 @@ class Pmod_DAC(object):
         time.sleep(2)
 
         print('running arbitrary wave generator')
-        
-        cmd = 8 + 1 # mode=3 and lsb = 1 means run cmd
+        lengthOfMailbox = len(convertedWave) << 8
+        cmd = lengthOfMailbox + 8 + 1 # mode=3 and lsb = 1 means run cmd
         self.microblaze.write_blocking_command(cmd)
 
 
