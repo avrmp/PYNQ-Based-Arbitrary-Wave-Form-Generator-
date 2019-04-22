@@ -52,8 +52,7 @@ from . import Pmod
 import struct
 import csv
 import time
-
-PMOD_DAC_PROGRAM = "pmod_dac.bin"
+PMOD_DAC_PROGRAM = "pmod_dac_arb_gen_v2.bin"
 FIXEDGEN = 0x3
 
 
@@ -104,10 +103,12 @@ class Pmod_DAC(object):
         convertedWave = []
         
         print('reading in wave.csv')
-        with open('wave.csv') as csv_file:
+        with open('waave.csv') as csv_file:
             csv_reader = csv.reader(csv_file, delimiter=',')
             for row in csv_reader:
-                wave.append(row[0])
+                wave = row
+                
+        wave = [float(value) for value in wave]
         
         # only 253 adddresses each one is 32 bits
         if len(wave) > 253 * 2:
@@ -120,7 +121,7 @@ class Pmod_DAC(object):
         
         # encode voltage values into 32 bit integers using resolution/step size of 4096 and max value 2.5V
         # each 32 bit integer will contain two 12 bit values (2^12 = 4096) and padded in MSB with zeros
-        for i in range(0, len(wave), 1):
+        for i in range(0, len(wave), 2):
             integer = 0
             
             # handle odd length
@@ -137,7 +138,7 @@ class Pmod_DAC(object):
             convertedWave.append(integer)
         
         print('writing to microblaze mailbox')
-
+        
         # write to mailbox
         self.microblaze.write_mailbox(0, convertedWave)
 
@@ -145,8 +146,9 @@ class Pmod_DAC(object):
         time.sleep(2)
 
         print('running arbitrary wave generator')
-        lengthOfMailbox = len(convertedWave) << 8
-        cmd = lengthOfMailbox + 8 + 1 # mode=3 and lsb = 1 means run cmd
+        lengthOfMailbox = (len(convertedWave) & 0xFF) << 8
+        
+        cmd = lengthOfMailbox + 8 + 1 + (2 ** 20)# mode=3 and lsb = 1 means run cmd
         self.microblaze.write_blocking_command(cmd)
 
 
@@ -179,7 +181,7 @@ class Pmod_DAC(object):
         cmd = cycles + delay + mode + 1
         self.microblaze.write_blocking_command(cmd)
     
-        def write_triangle_wave(self, cycles, delay):
+    def write_triangle_wave(self, cycles, delay):
         """
         cycles is the number of cycles of the wave we want to output
         before stopping the signal. If cycles is 0 the wave is generated forever
@@ -189,7 +191,7 @@ class Pmod_DAC(object):
         """
         delay = (delay & 0xFFF) << 20
         cycles = (cycles & 0xFF) << 8
-        mode = 16 
+        mode = 4 
         cmd = cycles + delay + mode + 1
         self.microblaze.write_blocking_command(cmd)
     
